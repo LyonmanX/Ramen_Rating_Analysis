@@ -23,7 +23,7 @@ The notebook is structured as a polished report with hidden code cells, clear se
 The dataset includes:
 
 - 2,500+ ramen products  
-- 38 countries  
+- 35 countries (38 names in the raw data, with 3 duplicates merged)  
 - Multiple packaging styles (Pack, Cup, Bowl, Tray, Other)  
 - Flavor descriptions (Variety column)  
 - Official Top Ten selections  
@@ -35,14 +35,16 @@ The dataset includes:
 
 Key steps:
 
-- Converted star ratings to numeric values  
-- Created `is_top_ten` indicator  
+- Converted star ratings to numeric values and dropped the 3 "Unrated" products (0-star ratings are kept as real reviews)  
+- Created `is_top_ten` indicator from real placements only (4 rows held an empty line break, not a placement)  
+- Merged duplicate names: "United States" → USA, "Holland" → Netherlands, "Sarawak" → Malaysia, "MAMA" → Mama  
+- Created flavor keyword flags (spicy, seafood, chicken, beef, pork, miso, curry) from the Variety description  
 - Normalized packaging styles  
 - Removed extremely rare style categories  
 - Filtered countries with **≥ 50 products** to avoid small-sample distortion  
 - Prepared cleaned datasets for visualization and modeling  
 
-Filtering reduced the dataset from **38 countries to 12**, improving reliability of country-level comparisons.
+Filtering reduced the dataset from **35 countries to 12**, improving reliability of country-level comparisons.
 
 ---
 
@@ -56,7 +58,7 @@ The notebook includes:
 - Global ramen style distribution  
 - Flavor keyword word cloud  
 
-These visualizations reveal strong regional patterns, with Southeast Asia and East Asia dominating both production volume and high-rated products.
+These visualizations reveal strong regional patterns. **Malaysia, Singapore, Indonesia and Japan** have the highest average ratings, and Singapore, Malaysia, Japan, South Korea and Indonesia lead the 37 Top Ten placements. **Prima Taste** has the most Top Ten appearances (5), followed by **Mama** (4). Region alone isn't enough, though: Thailand and Vietnam rank near the bottom on average.
 
 ---
 
@@ -67,24 +69,23 @@ A **Random Forest Regression** model was trained to predict ramen ratings using:
 - Flavor keyword flags  
 - Country of origin  
 - Packaging style  
-- Top Ten status  
+
+**Top Ten status is deliberately left out.** Winners are chosen because they are rated highly (all 37 are rated 4–5 stars), so using it as a predictor would leak the answer into the model.
 
 ### Model Performance
 
-- **MSE:** 0.7666  
-- **RMSE:** 0.8756  
-- **MAE:** 0.6448  
-- **R²:** 0.1422  
+- **MSE:** 0.9760  
+- **RMSE:** 0.9879  
+- **MAE:** 0.7261 (vs. 0.7320 for always predicting the average)  
+- **R²:** 0.0173  
 
-The model predicts ratings within roughly **±0.9 stars**, but explains only **14%** of the variance — expected due to the subjective nature of food ratings.
+The model is only slightly better than guessing the average rating and explains under **2%** of the variance. Country, flavor and style shape *average* ratings, but they can't predict an individual product's rating, which is expected given how subjective food ratings are.
 
 ### Key Predictors
 
-- **Top Ten status**  
-- **Country indicators** (Canada, UK, Netherlands, Japan, Malaysia, Vietnam, Thailand)  
-- **Packaging styles** (Pack, Cup, Bowl)  
-
-Flavor keywords contribute meaningfully but are not the strongest predictors.
+- **Country indicators**, led by Canada (lowest average rating at 2.24 stars), then Japan, Malaysia, Singapore, Indonesia, UK and Vietnam  
+- **Flavor keywords**: curry / tom yum varieties rate about **+0.4 stars** above the rest, while chicken varieties rate about **0.3 stars lower**. Spicy, seafood and miso make almost no difference.  
+- **Packaging styles** (Pack, Cup, Bowl), with smaller influence
 
 ---
 
@@ -97,10 +98,10 @@ A **K-Means** model was applied using:
 - Packaging style encodings  
 - Star ratings  
 
-### Silhouette Score: **0.0345**
+### Silhouette Score: **0.032**
 
 This extremely low score indicates **no meaningful cluster separation**.  
-Ramen products overlap heavily across countries, styles, and flavors, suggesting instant ramen is a globally homogeneous product category.
+Ramen products overlap heavily across countries, styles, and flavors, so there are no distinct product groupings in this data.
 
 ---
 
@@ -108,12 +109,13 @@ Ramen products overlap heavily across countries, styles, and flavors, suggesting
 
 Across all analyses, a consistent narrative emerges:
 
-- **Country of origin** is a strong predictor of ramen quality  
-- **Packaging style** contributes moderately  
-- **Flavor profile** adds meaningful but secondary influence  
-- **Top Ten selections** reliably identify standout products  
+- **Country of origin** shows the clearest differences in average ratings  
+- **Flavor** matters for a few keywords: curry / tom yum rates higher, chicken lower  
+- **Packaging style** has a smaller influence  
+- **Individual ratings are hard to predict**: the model barely beats guessing the average  
 - **Clustering models fail** due to high overlap across features  
-- **Southeast Asia and East Asia dominate** global ramen production and quality  
+- **Malaysia, Singapore, Indonesia and Japan** lead in average ratings, and Southeast and East Asian brands dominate the Top Ten  
+- A natural next step is adding **brand** as a model feature  
 
 This project demonstrates how data cleaning, visualization, and machine learning can reveal patterns in a subjective domain like food ratings — while also highlighting the limits of prediction when human taste is involved.
 
